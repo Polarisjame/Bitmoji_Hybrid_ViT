@@ -36,6 +36,8 @@ using [`Bitmojidata`](https://drive.google.com/file/d/1atMwmdOJe_fqG8Tyg5eqxZ-iD
 
 You can run `python train.py` to train a model in cmd line and `python train.py -h` to get help.
 
+You can usr `test(args, model, data, device)` in train.py to test the model
+
 Here are some important parameters:
 
 * `--batch_size`
