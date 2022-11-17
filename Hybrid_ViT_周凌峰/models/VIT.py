@@ -37,14 +37,21 @@ class ResidualAdd(nn.Module):
     Note for code simplicity the norm is first as opposed to last.
     """
 
-    def __init__(self, size, dropout):
+    def __init__(self, size, dropout, rezero):
         super(ResidualAdd, self).__init__()
         self.norm = LayerNorm(size)
         self.dropout = nn.Dropout(dropout)
+        self.re_zero = rezero
+        if self.rezero:
+            self.alpha = nn.Parameter(torch.Tensor(0))
 
     def forward(self, x, sublayer):
         "Apply residual connection to any sublayer with the same size."
-        return x + self.dropout(sublayer(self.norm(x)))
+
+        if self.rezero:
+            return x + self.alpha*self.dropout(sublayer(self.norm(x)))
+        else:
+            return x + self.dropout(sublayer(self.norm(x)))
 
 
 # 前馈全连接层
@@ -66,11 +73,11 @@ class FeedForwardBlock(nn.Module):
 class EncoderLayer(nn.Module):
     "Encoder is made up of self-attn and feed forward (defined below)"
 
-    def __init__(self, size: int, self_attn, feed_forward, dropout: float = 0.1):
+    def __init__(self, size: int, self_attn, feed_forward, dropout: float = 0.1, rezero = True):
         super(EncoderLayer, self).__init__()
         self.self_attn = self_attn
         self.feed_forward = feed_forward
-        self.sublayer = clones(ResidualAdd(size, dropout), 2)
+        self.sublayer = clones(ResidualAdd(size, dropout, rezero), 2)
         self.size = size
 
     def forward(self, x, mask: Tensor = None):
@@ -100,10 +107,12 @@ class VIT(nn.Module):
         super(VIT, self).__init__()
         self.depth = depth
         self.embed = PatchEmbedding(512, patches, emb_size, img_size)
-        self.encodelayer = EncoderLayer(emb_size, MultiHeadAttention(emb_size, num_head), FeedForwardBlock(emb_size, 4))
+        self.dropout = args.dropout
+        self.encodelayer = EncoderLayer(emb_size, MultiHeadAttention(emb_size, num_head),
+                                        FeedForwardBlock(emb_size, 4, dropout=self.dropout), dropout=self.dropout, rezero=args.re_zero)
         self.encodes = clones(self.encodelayer, depth)
         self.cretify = Classifaction(emb_size, n_classes)
-        self.resnet = Res34(args,in_channels)
+        self.resnet = Res34(args, in_channels)
 
     def forward(self, x, mask: Tensor = None):
         x = self.resnet(x)

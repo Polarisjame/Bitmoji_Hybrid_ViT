@@ -54,6 +54,8 @@ def train(args, model, data, device):
     train_loader = data.train_dataloader()
     val_loader = data.val_dataloader()
     lossF = CrossEntropyLoss()
+    # state_dict = torch.load(r'./checkpoint/vit_model_epoch44.pth')
+    # model.load_state_dict(state_dict)
     cur_lr_list = []
     train_loss_list = []
     val_loss_list = []
@@ -61,7 +63,7 @@ def train(args, model, data, device):
     train_acc_list = []
     # optimizer = Adam(model.parameters(), lr=args.learning_rate, weight_decay=0e-4)
     optimizer = SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=0e-4)
-    scheduler = lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2)
+    scheduler = lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2)
     epochs = args.epochs
     for epoch in range(1, epochs + 1):
         with tqdm(total=len(train_loader)) as t:
@@ -86,39 +88,21 @@ def train(args, model, data, device):
                 t.set_postfix(train_loss="{:.5f}".format(loss.item()), lr="{:.3e}".format(cur_lr), train_Acc=train_acc)
                 loss.backward()
                 optimizer.step()
-                scheduler.step()
                 sleep(0.1)
                 t.update(1)
+            scheduler.step()
             if epoch % 1 == 0:
                 if hasattr(torch.cuda, 'empty_cache'):
                     torch.cuda.empty_cache()
                 model.eval()
-                val_loss, P, R, F1 = evaluate(model, val_loader, lossF, device)
+                val_loss, F1, R, P = evaluate(model, val_loader, lossF, device)
                 print('Epoch:{:d},loss:{:.4f},Precission:{:.4f},Recall:{:.4f},F1:{:.4f}'.format(epoch, val_loss, P, R,
                                                                                                 F1))
-                torch.save(model.state_dict(), "./checkpoint/model_epoch{:d}.pth".format(epoch))
-    x_list = list(range(len(cur_lr_list)))
-    file_save_name = r"./checkpoints/model1"
-    plt.subplot(321)
-    plt.plot(x_list, cur_lr_list)
-    plt.title('lr')
-    plt.subplot(322)
-    plt.plot(x_list, train_loss_list)
-    plt.title('train_loss')
-    plt.subplot(323)
-    plt.plot(x_list, train_acc_list)
-    plt.title('train_acc')
-    plt.subplot(324)
-    plt.plot(x_list, val_loss_list)
-    plt.title('val_loss')
-    plt.subplot(325)
-    plt.plot(x_list, val_acc_list)
-    plt.title('val_acc')
-    plt.savefig(file_save_name + ".jpg")
+                torch.save(model.state_dict(), "./checkpoint/res_model_epoch{:d}.pth".format(epoch))
 
 
 def test(args, model, datas, device):
-    state_dict = torch.load(r'./checkpoint/model_epoch4.pth')
+    state_dict = torch.load(r'./checkpoint/vit_model_epoch44.pth')
     model.load_state_dict(state_dict)
     test_loader = datas.test_dataloader()
 
@@ -136,19 +120,19 @@ def test(args, model, datas, device):
     # print(result)
     result = [np.array(1) if a == 1 else -1 for a in result]
     ind = list(range(3000, 4084))
-    data = {'image_id':ind,'is_males':result}
+    data = {'image_id': ind, 'is_males': result}
     df = pd.DataFrame(data)
-    df.to_csv(r'./out.csv',index=False)
+    df.to_csv(r'./out_44.csv', index=False)
 
 
 def main(args):
     data = VITSet(args)
     data.setup()
     device = "cuda" if torch.cuda.is_available() and args.use_cuda else "cpu"
-    model = VIT(args).to(device)
-    # model = Res34(args,3,2).to(device)
-    # train(args, model, data, device)
-    test(args, model, data, device)
+    # model = VIT(args).to(device)
+    model = Res34(args, 3, 2).to(device)
+    train(args, model, data, device)
+    # test(args, model, data, device)
 
 
 if __name__ == "__main__":
@@ -158,6 +142,7 @@ if __name__ == "__main__":
     parser.add_argument('-cuda', '--use_cuda', type=bool, default=True, help='Use cuda or not')
     parser.add_argument('-k', '--topk', type=int, default=5, help='save the topk model')
     parser.add_argument('-nu', '--num_workers', type=int, default=0, help='thread number')
+    parser.add_argument('-d', '--dropout', type=float, default=0.1, help='thread number')
     parser.add_argument('--re_zero', type=bool, default=True)
     parser = VIT_lightning.add_model_specific_args(parser)
     args = parser.parse_args()

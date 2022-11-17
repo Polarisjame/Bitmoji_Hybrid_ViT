@@ -49,3 +49,5 @@ Here are some important parameters:
 
 model_epoch.pth and loss/acc figure is saved under `./checkpoint`,model is saved every 5 epochs.
 
+Here are My results of Train:
+![TrainPic](pic/train.png)
