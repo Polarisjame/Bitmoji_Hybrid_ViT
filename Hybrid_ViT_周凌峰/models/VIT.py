@@ -10,13 +10,11 @@ from utils.ResidualNet import Res34
 
 # 克隆N层网络
 def clones(module, N):
-    "Produce N identical layers."
     return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
 
 
 # 归一化层
 class LayerNorm(nn.Module):
-    "Construct a layernorm module (See citation for details)."
 
     def __init__(self, features, eps=1e-6):
         super(LayerNorm, self).__init__()
@@ -32,31 +30,18 @@ class LayerNorm(nn.Module):
 
 # 残差链接层
 class ResidualAdd(nn.Module):
-    """
-    A residual connection followed by a layer norm.
-    Note for code simplicity the norm is first as opposed to last.
-    """
 
     def __init__(self, size, dropout, rezero):
         super(ResidualAdd, self).__init__()
         self.norm = LayerNorm(size)
         self.dropout = nn.Dropout(dropout)
-        self.re_zero = rezero
-        if self.rezero:
-            self.alpha = nn.Parameter(torch.Tensor(0))
 
     def forward(self, x, sublayer):
-        "Apply residual connection to any sublayer with the same size."
-
-        if self.rezero:
-            return x + self.alpha*self.dropout(sublayer(self.norm(x)))
-        else:
-            return x + self.dropout(sublayer(self.norm(x)))
+        return x + self.dropout(sublayer(self.norm(x)))
 
 
 # 前馈全连接层
 class FeedForwardBlock(nn.Module):
-    "Implements FFN equation."
 
     def __init__(self, d_model, expansion: int = 4, dropout: float = 0.1):
         super(FeedForwardBlock, self).__init__()
@@ -71,7 +56,6 @@ class FeedForwardBlock(nn.Module):
 
 # 单个Encoder层
 class EncoderLayer(nn.Module):
-    "Encoder is made up of self-attn and feed forward (defined below)"
 
     def __init__(self, size: int, self_attn, feed_forward, dropout: float = 0.1, rezero = True):
         super(EncoderLayer, self).__init__()
@@ -81,7 +65,6 @@ class EncoderLayer(nn.Module):
         self.size = size
 
     def forward(self, x, mask: Tensor = None):
-        "Follow Figure 1 (left) for connections."
         x = self.sublayer[0](x, lambda x: self.self_attn(x, mask))
         return self.sublayer[1](x, self.feed_forward)
 

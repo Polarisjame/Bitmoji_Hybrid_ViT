@@ -13,11 +13,13 @@ class PatchEmbedding(nn.Module):
         self.projection = nn.Sequential(
             # using a conv layer instead of a linear one -> performance gains
             nn.Conv2d(in_channels, emb_size, kernel_size=1, stride=1),
+            # nn.Conv2d(in_channels, emb_size, kernel_size=patch_size, stride=patch_size),
             Rearrange('b e (h) (w) -> b (h w) e'),
         )
         self.cls_token = nn.Parameter(torch.randn(1, 1, emb_size))
         # img size是长和宽相等的，所以img_size//patch_size就是长和宽有多少个patch + 1(位置0）
         self.positions = nn.Parameter(torch.randn(14 ** 2 + 1, emb_size))
+        # self.positions = nn.Parameter(torch.randn((img_size//patch_size)**2 + 1, emb_size))
 
     def forward(self, x: Tensor) -> Tensor:
         b, _, _, _ = x.shape

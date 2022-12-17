@@ -1,1 +1,1 @@
-from .dataloader_lightning import VITSet
+from .dataload import VITSet

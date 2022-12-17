@@ -22,7 +22,7 @@ class ResidualBlock(nn.Module):
         left = self.layers(x)
         right = self.residual(x) if self.residual else x
         if self.re_zero:
-            left = left * self.alpha
+            right = right * self.alpha
         out = left + right
         return self.activ(out)
 

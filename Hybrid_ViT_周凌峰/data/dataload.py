@@ -3,7 +3,7 @@ import torchvision.transforms as T
 from PIL import Image
 from torch.utils import data
 import pandas as pd
-import re
+from torch.utils.data import DataLoader
 
 
 class Bitmoji(data.Dataset):
@@ -75,63 +75,34 @@ class Bitmoji(data.Dataset):
         return len(self.imgs)
 
 
-class DogCat(data.Dataset):
+class VITSet():
+    def __init__(self, args):
+        super().__init__()
+        # self.save_hyperparameters(args)
+        self.valset = None
+        self.trainset = None
+        self.batch_size = args.batch_size
+        self.valid_ratio = args.valid_ratio
+        self.num_workers = args.num_workers
+        self.n_test = None
 
-    def __init__(self, root, transforms=None, train=True, test=False):
-        """
-        主要目标： 获取所有图片的地址，并根据训练，验证，测试划分数据
-        """
-        self.test = test
-        imgs = [os.path.join(root, img) for img in os.listdir(root)]
-
-        # test1: data/test1/8973.jpg
-        # train: data/train/cat.10004.jpg
-        if self.test:
-            imgs = sorted(imgs, key=lambda x: int(x.split('.')[-2].split('/')[-1]))
+    def setup(self, stage=None):
+        if stage == 'fit' or stage is None:
+            self.trainset = Bitmoji(root=r'./data/Bitmojidata', train=True)
+            self.valset = Bitmoji(root=r'./data/Bitmojidata', train=False)
+            self.testset = Bitmoji(root=r'./data/Bitmojidata', test=True)
         else:
-            imgs = sorted(imgs, key=lambda x: int(x.split('.')[-2]))
+            raise NotImplementedError
 
-        imgs_num = len(imgs)
+    def train_dataloader(self):
+        dataloader = DataLoader(self.trainset, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
+        # for data in dataloader:
+        #     input, label = data
+        #     print(label.data)
+        return dataloader
 
-        if self.test:
-            self.imgs = imgs
-        elif train:
-            self.imgs = imgs[:int(0.7 * imgs_num)]
-        else:
-            self.imgs = imgs[int(0.7 * imgs_num):]
+    def val_dataloader(self):
+        return DataLoader(self.valset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
-        if transforms is None:
-            normalize = T.Normalize(mean=[0.485, 0.456, 0.406],
-                                    std=[0.229, 0.224, 0.225])
-
-            if self.test or not train:
-                self.transforms = T.Compose([
-                    T.Resize(224),
-                    T.CenterCrop(224),
-                    T.ToTensor(),
-                    normalize
-                ])
-            else:
-                self.transforms = T.Compose([
-                    T.Resize(256),
-                    T.CenterCrop(224),
-                    T.RandomHorizontalFlip(),
-                    T.ToTensor(),
-                    normalize
-                ])
-
-    def __getitem__(self, index):
-        """
-        一次返回一张图片的数据
-        """
-        img_path = self.imgs[index]
-        if self.test:
-            label = int(self.imgs[index].split('.')[-2].split('/')[-1])
-        else:
-            label = 1 if 'dog' in img_path.split('/')[-1] else 0
-        data = Image.open(img_path)
-        data = self.transforms(data)
-        return data, label
-
-    def __len__(self):
-        return len(self.imgs)
+    def test_dataloader(self):
+        return DataLoader(self.testset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
