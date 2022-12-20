@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 
 class Bitmoji(data.Dataset):
 
-    def __init__(self, root, transforms=None, train=True, test=False):
+    def __init__(self, root, args, transforms=None, train=True, test=False):
         """
         主要目标： 获取所有图片的地址，并根据训练，验证，测试划分数据
         """
@@ -25,10 +25,10 @@ class Bitmoji(data.Dataset):
         if self.test:
             self.imgs = imgs
         elif train:
-            self.imgs = imgs[:int(0.8 * imgs_num)]
+            self.imgs = imgs[:int((1-args.valid_ratio) * imgs_num)]
             # self.imgs = imgs[:100]
         else:
-            self.imgs = imgs[int(0.2 * imgs_num):]
+            self.imgs = imgs[int(args.valid_ratio * imgs_num):]
 
         train_file = root + '/train.csv'
         df = pd.read_csv(train_file)
@@ -50,6 +50,7 @@ class Bitmoji(data.Dataset):
                     T.Resize(256),
                     T.CenterCrop(224),
                     T.RandomHorizontalFlip(),
+                    T.RandomRotation(90),
                     T.ToTensor(),
                     normalize
                 ])
@@ -63,7 +64,7 @@ class Bitmoji(data.Dataset):
         if self.test:
             label = 0
         else:
-            index = int(img_path.split('\\')[-1][0:-4])
+            index = int(img_path.split('/')[-1][0:-4])
             value = self.values[index][1]
             # print(value)
             label = 0 if value == -1 else 1
@@ -85,12 +86,13 @@ class VITSet():
         self.valid_ratio = args.valid_ratio
         self.num_workers = args.num_workers
         self.n_test = None
+        self.args = args
 
     def setup(self, stage=None):
         if stage == 'fit' or stage is None:
-            self.trainset = Bitmoji(root=r'./data/Bitmojidata', train=True)
-            self.valset = Bitmoji(root=r'./data/Bitmojidata', train=False)
-            self.testset = Bitmoji(root=r'./data/Bitmojidata', test=True)
+            self.trainset = Bitmoji(root=r'./data/Bitmojidata', train=True, args=self.args)
+            self.valset = Bitmoji(root=r'./data/Bitmojidata', train=False, args=self.args)
+            self.testset = Bitmoji(root=r'./data/Bitmojidata', test=True, args=self.args)
         else:
             raise NotImplementedError
 

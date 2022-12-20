@@ -85,13 +85,14 @@ class Classifaction(nn.Module):
 
 
 class VIT(nn.Module):
-    def __init__(self, args, in_channels: int = 3, patches: int = 16, emb_size: int = 768, num_head: int = 8,
+    def __init__(self, args, in_channels: int = 512, patches: int = 16, emb_size: int = 768, num_head: int = 8,
                  img_size: int = 224, depth: int = 12, n_classes: int = 2):
         super(VIT, self).__init__()
         self.depth = depth
-        self.embed = PatchEmbedding(512, patches, emb_size, img_size)
+        self.embed = PatchEmbedding(in_channels, patches, emb_size, img_size)
         self.dropout = args.dropout
-        self.encodelayer = EncoderLayer(emb_size, MultiHeadAttention(emb_size, num_head),
+        seq_len = (img_size//patches)**2 + 1
+        self.encodelayer = EncoderLayer(emb_size, MultiHeadAttention(emb_size, num_head, self.dropout, seq_len),
                                         FeedForwardBlock(emb_size, 4, dropout=self.dropout), dropout=self.dropout, rezero=args.re_zero)
         self.encodes = clones(self.encodelayer, depth)
         self.cretify = Classifaction(emb_size, n_classes)

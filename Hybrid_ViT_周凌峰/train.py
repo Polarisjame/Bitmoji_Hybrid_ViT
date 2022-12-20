@@ -56,11 +56,12 @@ def train(args, model, data, device):
     # state_dict = torch.load(r'./checkpoint/vit_model_epoch46.pth')
     # model.load_state_dict(state_dict)
     train_loss_list = []
+    train_acc_list = []
     val_loss_list = []
     val_acc_list = []
     val_f1_list = []
-    # optimizer = Adam(model.parameters(), lr=args.learning_rate, weight_decay=0e-4)
-    optimizer = SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=0e-4)
+    # optimizer = Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_decacy)
+    optimizer = SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=args.l2_decacy)
     scheduler = lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2)
     epochs = args.epochs
     for epoch in range(1, epochs + 1):
@@ -81,6 +82,7 @@ def train(args, model, data, device):
                     correct = torch.sum(indices == data_y.to('cpu'))
                     train_acc = correct.item() * 1.0 / len(data_y)
                 train_loss_list.append(loss.item())
+                train_acc_list.append(train_acc)
                 t.set_postfix(train_loss="{:.5f}".format(loss.item()), lr="{:.3e}".format(cur_lr), train_Acc=train_acc)
                 loss.backward()
                 optimizer.step()
@@ -91,29 +93,34 @@ def train(args, model, data, device):
                 torch.cuda.empty_cache()
             model.eval()
             val_loss, F1, R, P = evaluate(model, val_loader, lossF, device)
+            val_loss_list.append(val_loss)
+            val_f1_list.append(F1)
+            val_acc_list.append(P)
             print(
-                '\rEpoch:{:d},loss:{:.4f},Precission:{:.4f},Recall:{:.4f},F1:{:.4f}'.format(epoch, val_loss, P,
-                                                                                                    R, F1))
-            if epoch % 5 == 0 or epoch >= 43:
-                torch.save(model.state_dict(), "./checkpoint/res_model_epoch{:d}.pth".format(epoch))
-    file_save_name = "./checkpoint/vit_model"
-    val_loss_list.append(val_loss)
-    val_f1_list.append(F1)
-    train_list = list(range(len(train_loss_list)))
+                '\nEpoch:{:d},loss:{:.4f},Precission:{:.4f},Recall:{:.4f},F1:{:.4f}'.format(epoch, val_loss, P,
+                                                                                            R, F1))
+            # if epoch % 5 == 0 or epoch >= 43:
+            #     torch.save(model.state_dict(), "./checkpoint/res_model_epoch{:d}.pth".format(epoch))
+            file_save_name = "./checkpoint/cnn_model_{:d}".format(epoch)
+            train_list = list(range(len(train_loss_list)))
+            plt.subplot(211)
+            plt.plot(train_list, train_loss_list)
+            plt.title('train_loss')
+            plt.subplot(212)
+            plt.plot(train_list, train_acc_list)
+            plt.savefig(file_save_name + ".jpg")
     val_list = list(range(len(val_loss_list)))
     plt.subplot(221)
-    plt.plot(train_list, train_loss_list)
-    plt.title('train_loss')
-    plt.subplot(222)
     plt.plot(val_list, val_loss_list)
     plt.title('val_loss')
-    plt.subplot(223)
+    plt.subplot(222)
     plt.plot(val_list, val_acc_list)
     plt.title('val_acc')
-    plt.subplot(224)
+    plt.subplot(223)
     plt.plot(val_list, val_f1_list)
     plt.title('val_f1')
-    plt.savefig(file_save_name + ".jpg")
+    plt.plot(train_list, train_acc_list)
+    plt.savefig(file_save_name + "_val.jpg")
             # if epoch % 5 == 0:
             #     torch.save(model.state_dict(), "./checkpoint/res_model_epoch{:d}.pth".format(epoch))
 
@@ -147,24 +154,26 @@ def main(args):
     data = VITSet(args)
     data.setup()
     device = "cuda" if torch.cuda.is_available() and args.use_cuda else "cpu"
-    model = VIT(args).to(device)
+    # model = VIT(args).to(device)
     # model = Res34(args, 3, 2).to(device)
+    model = CNN(args, 3, 2).to(device)
     train(args, model, data, device)
     # test(args, model, data, device)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="VIT")
-    parser.add_argument('-b', '--batch_size', type=int, default=12, help='input batch size for training (default: 32)')
+    parser.add_argument('-b', '--batch_size', type=int, default=10, help='input batch size for training (default: 32)')
     parser.add_argument('-vr', '--valid_ratio', type=float, default=0.05, help='divide valid:train sets by train_ratio')
     parser.add_argument('-cuda', '--use_cuda', type=bool, default=True, help='Use cuda or not')
     parser.add_argument('-k', '--topk', type=int, default=5, help='save the topk model')
     parser.add_argument('-nu', '--num_workers', type=int, default=0, help='thread number')
     parser.add_argument('-d', '--dropout', type=float, default=0.1, help='thread number')
     parser.add_argument('--re_zero', type=bool, default=True)
-    parser.add_argument('-e', '--epochs', type=int, default=500,
-                        help='input training epoch for training (default: 5)')
+    parser.add_argument('--l2_decacy', type=float, default=1e-4)
+    parser.add_argument('-e', '--epochs', type=int, default=50,
+                        help='input training epoch for training (default: 50)')
     parser.add_argument('-lr', '--learning_rate', type=float, default=1e-4,
-                        help='input learning rate for training (default: 5e-4)')
+                        help='input learning rate for training (default: 1e-4)')
     args = parser.parse_args()
     main(args)
