@@ -106,7 +106,7 @@ You need to replace the code in test(args, model, data, device) in [train.py](tr
 The result file will be saved as'out_epoch.csv'.
 
 Here are My Train Example:
-![TrainPic](pic/train.png)
+![TrainPic](./pic/train.png)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
