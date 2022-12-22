@@ -64,7 +64,7 @@ class Bitmoji(data.Dataset):
         if self.test:
             label = 0
         else:
-            index = int(img_path.split('/')[-1][0:-4])
+            index = int(img_path.split('\\')[-1][0:-4])
             value = self.values[index][1]
             # print(value)
             label = 0 if value == -1 else 1

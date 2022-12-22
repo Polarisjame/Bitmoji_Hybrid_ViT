@@ -39,14 +39,14 @@ class Res34(nn.Module):
         self.re_zero = args.re_zero
         self.layer1 = self._make_layer(64, 128, 3)
         self.layer2 = self._make_layer(128, 256, 4, stride=2)
-        self.hybrid = out_channels is None
-        if out_channels:
+        self.hybrid = args.use_hybrid
+        if not args.use_hybrid:
             self.layer3 = self._make_layer(256, 512, 6, stride=2)
             self.layer4 = self._make_layer(512, 512, 3, stride=2)
             self.avgpool = nn.AvgPool2d(7)
             self.fc = nn.Linear(512, out_channels)
         else:
-            self.layer3 = self._make_layer(256, 512, 9, stride=2)
+            self.layer3 = self._make_layer(256, out_channels, 9, stride=2)
         # self.softmax = nn.Softmax(1)
 
     def _make_layer(self, inchannel, outchannel, block_num, stride=1):

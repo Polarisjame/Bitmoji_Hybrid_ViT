@@ -57,7 +57,7 @@ class FeedForwardBlock(nn.Module):
 # 单个Encoder层
 class EncoderLayer(nn.Module):
 
-    def __init__(self, size: int, self_attn, feed_forward, dropout: float = 0.1, rezero = True):
+    def __init__(self, size: int, self_attn, feed_forward, dropout: float = 0.1, rezero=True):
         super(EncoderLayer, self).__init__()
         self.self_attn = self_attn
         self.feed_forward = feed_forward
@@ -85,21 +85,29 @@ class Classifaction(nn.Module):
 
 
 class VIT(nn.Module):
-    def __init__(self, args, in_channels: int = 512, patches: int = 16, emb_size: int = 768, num_head: int = 8,
+    def __init__(self, args, in_channels: int = 3, patches: int = 16, emb_size: int = 768, num_head: int = 8,
                  img_size: int = 224, depth: int = 12, n_classes: int = 2):
         super(VIT, self).__init__()
+        if args.in_channels:
+            in_channels = args.in_channels
+        seq_len = img_size//patches ** 2 + 1
         self.depth = depth
-        self.embed = PatchEmbedding(in_channels, patches, emb_size, img_size)
+        self.embed = PatchEmbedding(in_channels, patches, emb_size, seq_len)
         self.dropout = args.dropout
-        seq_len = (img_size//patches)**2 + 1
+        seq_len = (img_size // patches) ** 2 + 1
         self.encodelayer = EncoderLayer(emb_size, MultiHeadAttention(emb_size, num_head, self.dropout, seq_len),
-                                        FeedForwardBlock(emb_size, 4, dropout=self.dropout), dropout=self.dropout, rezero=args.re_zero)
+                                        FeedForwardBlock(emb_size, 4, dropout=self.dropout), dropout=self.dropout,
+                                        rezero=args.re_zero)
         self.encodes = clones(self.encodelayer, depth)
         self.cretify = Classifaction(emb_size, n_classes)
-        self.resnet = Res34(args, in_channels)
+        self.hybrid = args.use_hybrid
+        if args.use_hybrid:
+            self.embed = PatchEmbedding(args.resnet_out_channels, 1, emb_size, seq_len)
+            self.resnet = Res34(args, in_channels, args.resnet_out_channels)
 
     def forward(self, x, mask: Tensor = None):
-        x = self.resnet(x)
+        if self.hybrid:
+            x = self.resnet(x)
         x = self.embed(x)
         for encode in self.encodes:
             x = encode(x, mask)

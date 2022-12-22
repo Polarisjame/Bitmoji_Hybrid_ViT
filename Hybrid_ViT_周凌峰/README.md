@@ -90,7 +90,11 @@ Download data from [`Bitmojidata`](https://drive.google.com/file/d/1atMwmdOJe_fq
 
 ### Train
 
-You can run `python train.py` to train a model in cmd line and `python train.py -h` to get help.
+* You can run `python train.py` to train a **Hybrid_ViT Model** in cmd line and `python train.py -h` to get help.
+
+* To train a **ResNet34 Model**, you can run `python train.py --use_only_res34 True`
+
+* To train a **pure ViT Model**, you can run `python train.py --use_only_res34 False --use_hybrid False`
 
 Here are some important parameters:
 
@@ -98,7 +102,6 @@ Here are some important parameters:
 * `--re_zero`: Use Re_zero in ResNet if True
 * `--learning_rate`
 * `--epochs`
-
 ### Test
 
 Your trained model named 'model_epoch.pth' and loss/acc figure is saved under ./checkpoint,model is saved every 5 epochs.

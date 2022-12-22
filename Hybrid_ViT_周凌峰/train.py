@@ -168,9 +168,13 @@ def main(args):
     data = VITSet(args)
     data.setup()
     device = "cuda" if torch.cuda.is_available() and args.use_cuda else "cpu"
-    model = VIT(args).to(device)
+    if args.use_only_res34:
+        args.use_hybrid = False
+        model = Res34(args, 3, 2).to(device)
+    else:
+        model = VIT(args).to(device)
+    # print(model)
     print(getModelSize(model))
-    # model = Res34(args, 3, 2).to(device)
     # model = CNN(args, 3, 2).to(device)
     train(args, model, data, device)
     # test(args, model, data, device)
@@ -188,6 +192,12 @@ if __name__ == "__main__":
     parser.add_argument('--l2_decacy', type=float, default=1e-4)
     parser.add_argument('-e', '--epochs', type=int, default=50,
                         help='input training epoch for training (default: 50)')
+    parser.add_argument('--use_hybrid', type=bool, default=True,
+                        help='set True if use Hybrid_Model else use only ViT Model(default: True)')
+    parser.add_argument('--use_only_res34', type=bool, default=False,
+                        help='set True if use ResNet34 else use  ViT Model(default: False)')
+    parser.add_argument('--in_channels', type=int, default=3)
+    parser.add_argument('--resnet_out_channels', type=int, default=512)
     parser.add_argument('-lr', '--learning_rate', type=float, default=1e-4,
                         help='input learning rate for training (default: 1e-4)')
     args = parser.parse_args()
