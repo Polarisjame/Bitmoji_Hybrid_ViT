@@ -115,4 +115,4 @@ Here are My Train Example:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](/LICENCE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/Polarisjame/Bitmoji_Hybrid_ViT/blob/main/LICENSE) file for details.
