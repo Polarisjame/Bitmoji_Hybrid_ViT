@@ -113,3 +113,6 @@ Here are My Train Example:
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](/LICENCE) file for details.

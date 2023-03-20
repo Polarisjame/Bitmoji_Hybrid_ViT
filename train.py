@@ -13,7 +13,7 @@ import argparse
 # from CatDog.data.dataload import load_data
 from matplotlib import pyplot as plt
 from torch.nn import CrossEntropyLoss
-from torch.optim import Adam, lr_scheduler, SGD
+from torch.optim import Adam, lr_scheduler, SGD, RMSprop
 from tqdm import tqdm
 from sklearn.metrics import f1_score, precision_score, recall_score
 from models.VIT import VIT
@@ -76,6 +76,7 @@ def train(args, model, data, device):
     val_f1_list = []
     # optimizer = Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.l2_decacy)
     optimizer = SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=args.l2_decacy)
+    # optimizer = RMSprop()
     scheduler = lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2)
     epochs = args.epochs
     for epoch in range(1, epochs + 1):
